@@ -13,8 +13,8 @@ func TestPasswordHashing(t *testing.T) {
 	ph := phpass.NewPasswordHash(16, true)
 
 	// Hash the plain password
-	hashedPassword, err := ph.HashPassword(plainPassword)
-	fmt.Println(hashedPassword)
+	hashedPassword, salt, err := ph.HashPassword(plainPassword)
+	fmt.Println(hashedPassword,salt)
 	if err != nil {
 		t.Fatalf("Error hashing password: %v", err)
 	}
