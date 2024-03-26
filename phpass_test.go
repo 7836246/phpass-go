@@ -2,7 +2,7 @@ package phpass_test
 
 import (
 	"fmt"
-	phpass "phpass-go"
+	"github.com/7836246/phpass-go/phpass"
 	"testing"
 )
 
@@ -14,7 +14,7 @@ func TestPasswordHashing(t *testing.T) {
 
 	// Hash the plain password
 	hashedPassword, salt, err := ph.HashPassword(plainPassword)
-	fmt.Println(hashedPassword,salt)
+	fmt.Println(hashedPassword, salt)
 	if err != nil {
 		t.Fatalf("Error hashing password: %v", err)
 	}
