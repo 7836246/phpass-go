@@ -10,17 +10,17 @@ import (
 	"time"
 )
 
-// PasswordHash 结构体用于密码的加密和校验
+// PasswordHash 结构体用于密码的加密和校验。
 type PasswordHash struct {
-	itoa64       string // 用于编码的64字符集
-	iterationCnt int    // 迭代计数
-	portableHash bool   // 是否使用可移植的哈希方式
-	randomState  string // 随机状态字符串，用于生成随机字节
+	itoa64       string // 用于编码的64字符集。
+	iterationCnt int    // 迭代计数。
+	portableHash bool   // 是否使用可移植的哈希方式。
+	randomState  string // 随机状态字符串，用于生成随机字节。
 }
 
-// NewPasswordHash 创建一个新的PasswordHash实例
+// NewPasswordHash 创建一个新的PasswordHash实例。
 func NewPasswordHash(iterationCnt int, portableHash bool) *PasswordHash {
-	rand.NewSource(time.Now().UnixNano()) // 初始化随机种子
+	rand.NewSource(time.Now().UnixNano()) // 初始化随机种子。
 	return &PasswordHash{
 		itoa64:       "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
 		iterationCnt: iterationCnt,
@@ -29,7 +29,7 @@ func NewPasswordHash(iterationCnt int, portableHash bool) *PasswordHash {
 	}
 }
 
-// GetRandomBytes 生成指定数量的随机字节
+// GetRandomBytes 生成指定数量的随机字节。
 func (p *PasswordHash) GetRandomBytes(count int) []byte {
 	var output []byte
 	fh, err := os.Open("/dev/urandom")
@@ -49,7 +49,7 @@ func (p *PasswordHash) GetRandomBytes(count int) []byte {
 	return output
 }
 
-// Encode64 将字节数据编码为64位字符串
+// Encode64 将字节数据编码为64位字符串。
 func (p *PasswordHash) Encode64(input []byte, count int) string {
 	output := ""
 	i := 0
@@ -78,7 +78,7 @@ func (p *PasswordHash) Encode64(input []byte, count int) string {
 	return output
 }
 
-// GensaltPrivate 生成私有的盐字符串
+// GensaltPrivate 生成私有的盐字符串。
 func (p *PasswordHash) GensaltPrivate(input []byte) string {
 	output := "$P$"
 	output += string(p.itoa64[m(p.iterationCnt+5, 30)])
@@ -86,7 +86,7 @@ func (p *PasswordHash) GensaltPrivate(input []byte) string {
 	return output
 }
 
-// CryptPrivate 对密码进行私有加密
+// CryptPrivate 对密码进行私有加密。
 func (p *PasswordHash) CryptPrivate(password, setting string) string {
 	output := "*0"
 	if setting[:2] == output {
@@ -120,23 +120,27 @@ func m(a, b int) int {
 	return b
 }
 
-// HashPassword 创建给定明文密码的哈希值。
-func (p *PasswordHash) HashPassword(password string) (string, error) {
-	if p.portableHash {
-		random := p.GetRandomBytes(6)
-		salt := p.GensaltPrivate(random)
-		hash := p.CryptPrivate(password, salt)
-		if len(hash) == 34 {
-			return hash, nil
-		}
+// HashPassword 创建给定明文密码的哈希值，并返回哈希值及其盐。
+// 返回的盐用于后续验证过程中重新生成哈希值。
+func (p *PasswordHash) HashPassword(password string) (hashedPassword string, salt string, err error) {
+	// 随机生成盐
+	random := p.GetRandomBytes(6)
+	// 生成盐的私有字符串表示
+	salt = p.GensaltPrivate(random)
+	// 使用密码和盐生成哈希
+	hash := p.CryptPrivate(password, salt)
+	if len(hash) == 34 {
+		return hash, salt, nil
 	}
-	return "", fmt.Errorf("无法创建密码哈希")
+	return "", "", fmt.Errorf("无法创建密码哈希")
 }
 
 // CheckPassword 校验密码是否与存储的哈希匹配。
+// 接受用户输入的密码和存储的哈希值，如果匹配，返回true。
 func (p *PasswordHash) CheckPassword(password, storedHash string) bool {
 	hash := p.CryptPrivate(password, storedHash)
 	if hash[0] == '*' {
+		// 如果加密过程中出现问题，尝试再次加密以检查是否可成功匹配
 		hash = p.CryptPrivate(password, storedHash)
 	}
 	return hash == storedHash
